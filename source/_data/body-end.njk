@@ -1,0 +1,74 @@
+<button id="endfield-settings-fab" class="endfield-settings-trigger endfield-settings-fab" type="button" aria-label="设置" title="设置">
+  <i class="fa fa-gear"></i>
+</button>
+
+<div class="endfield-settings-overlay" id="endfield-settings" aria-hidden="true">
+  <div class="endfield-settings-panel">
+    <div class="endfield-settings-side">
+      <div class="endfield-settings-side-title">设置</div>
+      <div class="endfield-settings-side-item active" data-tab="palette">配色</div>
+      <div class="endfield-settings-side-item" data-tab="background">背景</div>
+    </div>
+    <div class="endfield-settings-body">
+      <button class="endfield-settings-close" id="endfield-settings-close" type="button">×</button>
+
+      <div class="endfield-settings-pane active" data-pane="palette">
+        <div class="endfield-settings-group-title"><span></span>01 配色</div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">主题配色</div>
+            <div class="endfield-setting-hint">终端配色，用于按钮、悬停、标题与等高线</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-palette="valley">谷地黄</button><button data-palette="wuling">武陵青</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">外观</div>
+            <div class="endfield-setting-hint">浅色 / 深色</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-mode="light">浅色</button><button data-mode="dark">深色</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="endfield-settings-pane" data-pane="background">
+        <div class="endfield-settings-group-title"><span></span>02 背景</div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">等高线背景</div>
+            <div class="endfield-setting-hint">当前配色的等值线铺满界面底层</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-contour-enable="on">开启</button><button data-contour-enable="off">关闭</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">动态等高线</div>
+            <div class="endfield-setting-hint">等高线缓慢流动变形</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-contour-anim="on">开启</button><button data-contour-anim="off">关闭</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">动态帧率 FPS</div>
+            <div class="endfield-setting-hint">选择等高线动画的刷新档位</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-fps="24">24</button><button data-fps="60">60</button><button data-fps="120">120</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ config.root }}js/endfield-contour.js" defer></script>
+<script src="{{ config.root }}js/endfield-palette.js" defer></script>
+<script src="{{ config.root }}js/endfield-codeblock.js" defer></script>
+<script src="{{ config.root }}js/endfield-settings.js" defer></script>

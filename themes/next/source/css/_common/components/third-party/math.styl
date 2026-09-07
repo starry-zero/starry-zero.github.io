@@ -1,0 +1,9 @@
+if (hexo-config('math.mathjax.enable')) {
+  .has-jax {
+    overflow: auto hidden;
+  }
+
+  mjx-container[display='true'] + br {
+    display: none;
+  }
+}

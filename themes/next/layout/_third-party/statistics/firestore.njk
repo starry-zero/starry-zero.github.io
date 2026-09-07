@@ -1,0 +1,7 @@
+{%- if theme.firestore.enable %}
+  {{ next_data('firestore', {
+    collection: theme.firestore.collection,
+    projectId: theme.firestore.projectId
+  }) }}
+  {{ next_js('third-party/statistics/firestore.js') }}
+{%- endif %}

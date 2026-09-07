@@ -1,0 +1,23 @@
+.site-nav-toggle, .site-nav-search {
+  color: var(--text-color);
+  display: none;
+  padding: 0 10px;
+
+  .fa {
+    transition: transform .5s;
+  }
+
+  +mobile() {
+    flex-column();
+  }
+}
+
+.site-nav-on .site-nav-toggle .fa {
+  transform: rotate(-90deg);
+}
+
+.site-nav {
+  +mobile() {
+    site-nav-hide-by-default();
+  }
+}

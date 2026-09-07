@@ -1,0 +1,633 @@
+/* ===== endfield 等高线背景（移植） ===== */
+
+/* 奶油纸底：亮色 #e8e8e2 / 暗色 #101110（endfield 中性色令牌）。
+   设为 html 背景，避免被 NexT 的 body 白色背景遮掉。 */
+html {
+  background-color: #e8e8e2;
+}
+html.endfield-dark {
+  background-color: #101110;
+}
+
+/* 关键修复：NexT 默认在 body 上用了白色背景(--body-bg-color)，
+   这个白色会盖住负 z-index 的画布。改成透明，让纸底与等高线透出。 */
+body {
+  background: transparent;
+}
+
+/* 画布层：fixed 铺满视口，置于所有内容之下（正文永远在等高线之上） */
+#endfield-contour {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+#endfield-contour canvas {
+  display: block;
+}
+
+/* 侧边栏保持 NexT 默认（不透明 #222 深黑），不做任何自定义覆盖 */
+
+/* 正文主容器背景透明，让等高线从纸底透出（正文直接浮在纸上） */
+.header,
+.header-inner,
+.site-brand-container,
+.main,
+.main-inner,
+.content-wrap,
+.post-block,
+.posts-expand,
+.column,
+.container,
+.footer,
+.post {
+  background: transparent;
+}
+
+/* ===== endfield 配色切换（谷地黄 / 武陵青）===== */
+
+/* 强调色变量。参考 endfield：信号色用于深底高亮，文字档用于纸底文字。
+   亮色下文字档必须用“下沉”的深色（黄在纸底 1.07:1 不可读），暗色用原信号色。 */
+body {
+  --endfield-accent: #fff500;        /* 谷地黄 · 信号色（深底高亮/边框） */
+  --endfield-accent-deep: #e8e000;   /* 谷地黄 · hover 加深 */
+  --endfield-accent-text: #6b5d00;   /* 谷地黄 · 纸底文字（下沉深档） */
+}
+body.theme-endfield-wuling {
+  --endfield-accent: #14d0d0;        /* 武陵青 · 信号色 */
+  --endfield-accent-deep: #10b8b8;
+  --endfield-accent-text: #006a6a;   /* 武陵青 · 纸底文字（下沉深档） */
+}
+html.endfield-dark {
+  body {
+    --endfield-accent-text: #fff500; /* 暗色：文字用原信号黄 */
+  }
+  body.theme-endfield-wuling {
+    --endfield-accent-text: #14d0d0; /* 暗色：文字用原信号青 */
+  }
+}
+
+/* 覆盖 NexT 硬编码的强调色(#87daff)。注入样式在 main.css 之后 @import，
+   同特异性下后声明优先，故这里可直接用 var() 接管。 */
+.headband,
+.sidebar-toggle:hover .toggle-line {
+  background: var(--endfield-accent);
+}
+.sidebar-toc-active .sidebar-nav-toc,
+.sidebar-overview-active .sidebar-nav-overview,
+.post-toc .nav .active > a,
+.back-to-top:hover {
+  color: var(--endfield-accent);
+  border-bottom-color: var(--endfield-accent);
+}
+.reward-container button {
+  color: var(--endfield-accent-text);
+  border: 2px solid var(--endfield-accent-text);
+}
+.reward-container button:hover {
+  background: var(--endfield-accent-text);
+  color: #fff;
+}
+
+/* 侧边栏底部“设置”菜单项 */
+.endfield-sidebar-footer {
+  margin-top: auto;
+  padding: 12px 10px;
+  border-top: 1px solid #444;
+  text-align: left;
+}
+.endfield-setting-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid #555;
+  border-radius: 2px;
+  color: #ccc;
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.endfield-setting-btn:hover {
+  color: var(--endfield-accent);
+  border-color: var(--endfield-accent);
+}
+.endfield-setting-btn .endfield-setting-label {
+  margin-left: auto;
+  color: var(--endfield-accent-text);
+}
+
+/* ===== endfield 排版特性（表格 / 内联代码 / 高亮） ===== */
+
+/* 补充强调色的 RGB 分量变量，供半透明背景使用（仿 endfield --edge-accent-rgb） */
+body {
+  --endfield-accent-rgb: 255, 245, 0;        /* 谷地黄 */
+}
+body.theme-endfield-wuling {
+  --endfield-accent-rgb: 20, 208, 208;       /* 武陵青 */
+}
+
+/* 表格：endfield 工业编辑风——表头浅色软底 + 中性线、行底部细分线、行悬停实心强调底+黑字、数字等宽 */
+.post-body table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;        /* tnum：数字等宽不抖动 */
+}
+.post-body table th {
+  background: #f2f2ec;                       /* edge-soft：浅沉底块 */
+  border: 0;                                 /* 清零默认四边框（否则左右残留白条） */
+  border-bottom: 2px solid #d8d9d5;          /* edge-line：中性细线 */
+}
+.post-body table td {
+  border: 0;
+  border-bottom: 1px solid #d8d9d5;          /* 每行底部一条中性细线 */
+  border-top: 0;
+}
+.post-body table tbody tr:nth-of-type(odd) {
+  background: transparent;                   /* 去掉默认斑马纹，贴近 endfield 极简 */
+}
+.post-body table tbody tr:hover {
+  background: var(--endfield-accent);
+  color: #000;
+}
+.post-body table tbody tr:hover td {
+  color: #000;
+}
+/* 表格行 hover 时，行内 code 也转黑；但排除代码块内的 code（其 <pre><code> 保留 hljs 高亮色） */
+.post-body table tbody tr:hover td code:not(pre code) {
+  color: #000;
+}
+html.endfield-dark {
+  .post-body table th {
+    background: #1e201d;
+    border-bottom-color: #4a4d49;
+  }
+  .post-body table td {
+    border-bottom-color: #343633;
+  }
+}
+
+/* 内联代码：纯强调色底、无边框（endfield --dsw-alias-markdown-inline-code 0.14 / 0.18）。
+   圆角用较大的 6px：endfield 直角化只清有 class 的元素，<code> 无 class 保留 DSH 原生大圆角 */
+.post-body p code,
+.post-body li code,
+.post-body td code,
+.post-body dd code {
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.14)');
+  border: none;
+  border-radius: 6px;
+  color: #101110;
+}
+html.endfield-dark {
+  .post-body p code,
+  .post-body li code,
+  .post-body td code,
+  .post-body dd code {
+    background: unquote('rgba(var(--endfield-accent-rgb), 0.18)');
+    color: #f5f5f0;
+  }
+}
+
+/* 代码块：背景用中性暖纸灰（endfield --dsw-alias-markdown-code-block #ecece6），
+   顶部 banner（figcaption）用强调色 0.10 */
+.post-body figure.highlight,
+.post-body figure.highlight pre,
+.post-body pre {
+  background: #ecece6;
+}
+.post-body figure.highlight figcaption,
+.post-body pre .caption {
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.10)');
+}
+html.endfield-dark {
+  .post-body figure.highlight,
+  .post-body figure.highlight pre,
+  .post-body pre {
+    background: #181a18;
+  }
+}
+
+/* 引用：endfield markdown-citation 强调色底 + 强调色左边框 */
+.post-body blockquote {
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.06)');
+  border-left: 3px solid var(--endfield-accent);
+}
+
+/* 高亮：==文字== 渲染出的 <mark>，用强调色 */
+.post-body mark {
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.26)');
+  color: #101110;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+html.endfield-dark {
+  .post-body mark {
+    color: #f5f5f0;
+  }
+}
+
+/* 代码块：DSH 风格——整体 12px 圆角卡片、顶部淡强调色 banner（左语言、右复制）、暖灰代码区。
+   圆角与 banner 色取自 DSH 前端 --dsl-code-block-border-radius: 12px 与
+   --dsw-alias-markdown-code-block-banner: rgba(accent, 0.10)。 */
+.post-body figure.highlight {
+  border-radius: 0;
+  overflow: hidden;
+}
+.endfield-code-banner {
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.10)');
+  padding: 9px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  color: #101110;
+}
+html.endfield-dark {
+  .endfield-code-banner {
+    color: #e8e8e2;
+  }
+}
+.endfield-code-lang {
+  letter-spacing: 0.5px;
+}
+.endfield-code-copy {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0;
+}
+.endfield-code-copy:hover,
+.endfield-code-copy.copied {
+  opacity: 1;
+}
+
+/* ===== 强调色应用：品牌块 / 标签 / 页脚作者 ===== */
+
+/* 品牌块：强调色背景 + 黑字（endfield signal 填充，随配色切换）。
+   .brand 默认背景是深色(--btn-default-bg)、文字白色。 */
+.brand {
+  background: var(--endfield-accent);
+}
+.brand,
+.brand:hover,
+.brand .site-title,
+.brand:hover .site-title {
+  color: #000;
+}
+
+/* 标签：tag 页仅最大的两个 tag（tag-cloud-10，即 Hexo/随笔）用强调色；
+   文章底部 post-tags 链接也用强调色文字（纸底用下沉深档，暗底自动用信号色） */
+.post-tags a,
+.tag-cloud-tags a[class*="tag-cloud-10"] {
+  color: var(--endfield-accent-text);
+}
+
+/* 页脚作者 starry-zero：跟随配色（纸底下沉深档 / 暗底信号色） */
+.copyright .author {
+  color: var(--endfield-accent-text);
+}
+
+/* 文章大标题用强调色：仅详情页(.main-inner.post)与首页列表(.main-inner.index)。
+   tag / 分类 / 关于 等页面标题在 .main-inner.page 下，不命中此规则、保持默认色。
+   首页列表标题是 <h2><a class="post-title-link">…</a></h2>，文字在链接里，需覆盖链接。 */
+/* 标题：浅色/深色都用强调色文字（无底块）。accent-text 浅色为下沉深档、深色为信号色 */
+.main-inner.post .post-title,
+.main-inner.index .post-title,
+.main-inner.index .post-title-link {
+  color: var(--endfield-accent-text);
+}
+
+
+/* ===== 外观：强制深色（html.endfield-dark），浅色为默认 ===== */
+html.endfield-dark {
+  --body-bg-color: #282828;
+  --content-bg-color: #333;
+  --card-bg-color: #555;
+  --text-color: #ccc;
+  --selection-bg: #bbb;
+  --selection-color: #333;
+  --blockquote-color: #bbb;
+  --link-color: #ccc;
+  --link-hover-color: #eee;
+  --brand-color: #ddd;
+  --brand-hover-color: #ddd;
+  --table-row-odd-bg-color: #282828;
+  --table-row-hover-bg-color: #363636;
+  --menu-item-bg-color: #555;
+  --theme-color: #222;
+  --btn-default-bg: #222;
+  --btn-default-color: #ccc;
+  --btn-default-border-color: #555;
+  --btn-default-hover-bg: #666;
+  --btn-default-hover-color: #ccc;
+  --btn-default-hover-border-color: #666;
+  --highlight-background: #1c1b1b;
+  --highlight-foreground: #fff;
+  --highlight-gutter-background: #323131;
+  --highlight-gutter-foreground: #e8e8e8;
+}
+
+/* ===== 设置面板（DSH 风格） ===== */
+.endfield-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;   /* DSH：模态四周留 24px */
+}
+.endfield-settings-overlay.open {
+  display: flex;
+}
+.endfield-settings-panel {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  max-width: 540px;
+  max-height: 45vh;   /* max 缩到原来(1080px / 90vh)的一半 */
+  background: #f2f2ec;
+  color: #101110;
+  border: 1px solid #b6b8b3;
+  border-radius: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+html.endfield-dark .endfield-settings-panel {
+  background: #1c1e1c;
+  color: #f5f5f0;
+  border-color: #4a4d49;
+}
+.endfield-settings-side {
+  width: 150px;
+  padding: 18px 0;
+  background: #e8e8e2;
+  border-right: 1px solid #b6b8b3;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+html.endfield-dark .endfield-settings-side {
+  background: #181a18;
+  border-right-color: #343633;
+}
+.endfield-settings-side-title {
+  padding: 0 18px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #101110;
+}
+html.endfield-dark .endfield-settings-side-title {
+  color: #f5f5f0;
+}
+.endfield-settings-side-item {
+  padding: 10px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  color: #4a4c48;
+}
+html.endfield-dark .endfield-settings-side-item {
+  color: #898d89;
+}
+.endfield-settings-side-item.active {
+  color: var(--endfield-accent-text);
+  border-left-color: var(--endfield-accent);
+  background: unquote('rgba(var(--endfield-accent-rgb), 0.08)');
+}
+.endfield-settings-body {
+  position: relative;
+  flex: 1;
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+.endfield-settings-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: 0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #4a4c48;
+}
+html.endfield-dark .endfield-settings-close {
+  color: #898d89;
+}
+.endfield-settings-pane {
+  display: none;
+}
+.endfield-settings-pane.active {
+  display: block;
+}
+.endfield-settings-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--endfield-accent-text);
+  margin: 4px 0 6px;
+}
+.endfield-settings-group-title span {
+  width: 4px;
+  height: 14px;
+  background: var(--endfield-accent);
+  display: inline-block;
+}
+.endfield-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #d8d9d5;
+}
+html.endfield-dark .endfield-setting-row {
+  border-bottom-color: #343633;
+}
+.endfield-setting-text {
+  min-width: 0;
+}
+.endfield-setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #101110;
+}
+html.endfield-dark .endfield-setting-label {
+  color: #f5f5f0;
+}
+.endfield-setting-hint {
+  font-size: 12px;
+  color: #6a6d68;
+  margin-top: 2px;
+}
+html.endfield-dark .endfield-setting-hint {
+  color: #9a9d98;
+}
+.endfield-setting-control {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.endfield-setting-control button {
+  background: transparent;
+  border: 1px solid #b6b8b3;
+  border-radius: 0;
+  padding: 5px 14px;
+  font-size: 12px;
+  color: #101110;
+  cursor: pointer;
+  white-space: nowrap;
+}
+html.endfield-dark .endfield-setting-control button {
+  border-color: #5f6460;
+  color: #e8e8e2;
+}
+.endfield-setting-control button.active {
+  background: var(--endfield-accent);
+  border-color: var(--endfield-accent);
+  color: #000;
+}
+/* DSH 深色模式：选中的设置项（分段按钮）色底为主题色、字为黑；未选中色底中性、字为白 */
+html.endfield-dark .endfield-setting-control button.active {
+  background: var(--endfield-accent);
+  border-color: var(--endfield-accent);
+  color: #000;
+}
+html.endfield-dark .endfield-setting-control button:not(.active) {
+  background: transparent;
+  border-color: #5f6460;
+  color: #e8e8e2;
+}
+
+/* 侧边栏“叉”(sidebar-toggle) 上方的小齿轮设置入口 */
+.endfield-settings-fab {
+  position: fixed;
+  right: 30px;
+  bottom: 92px;
+  z-index: 40;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #222;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.8;
+  padding: 0;
+}
+html.endfield-dark .endfield-settings-fab {
+  background: #282828;
+  color: #fff;
+}
+.endfield-settings-fab:hover {
+  opacity: 1;
+  color: var(--endfield-accent);
+}
+
+/* 归档页时间线：竖线用强调色（圆点保持不动） */
+.posts-collapse .post-content::before {
+  background: var(--endfield-accent);
+}
+
+@media (max-width: 767px) {
+  .endfield-settings-fab {
+    right: 20px;   /* 与 sidebar-toggle/back-to-top 移动端对齐 */
+  }
+}
+
+/* 归档时间线圆点：与竖线用同一强调色 */
+.posts-collapse .post-content .collection-title::before,
+.posts-collapse .post-content .collection-year::before,
+.posts-collapse .post-content .post-header::before {
+  background: var(--endfield-accent);
+}
+
+/* ===== DSH 主题面板/气泡配色（区分深浅） ===== */
+html {
+  --endfield-panel: #f2f2ec;      /* 亮：面板/气泡 layer-1 */
+}
+html.endfield-dark {
+  --endfield-panel: #181a18;      /* 暗 */
+}
+
+/* 归档时间线：圆点背后的白色大圆（描边）改用 DSH 面板/气泡色 */
+.posts-collapse .post-content .collection-title::before,
+.posts-collapse .post-content .post-header::before {
+  border-color: var(--endfield-panel);
+}
+
+/* 设置界面：左右两栏背景统一用 DSH 面板/气泡色 */
+.endfield-settings-panel,
+.endfield-settings-side {
+  background: var(--endfield-panel);
+}
+html.endfield-dark .endfield-settings-panel,
+html.endfield-dark .endfield-settings-side {
+  background: var(--endfield-panel);
+}
+
+/* 分类页面：每个分类数量背景用 DSH 面板/气泡色（与默认 .category-all-page 前缀同特异性以覆盖） */
+.category-all-page .category-list-count {
+  background: var(--endfield-panel);
+}
+html.endfield-dark .category-all-page .category-list-count {
+  color: #e8e8e2;
+}
+
+/* 代码块：隐藏行号栏 */
+.post-body figure.highlight .gutter {
+  display: none;
+}
+
+/* 文本选中：用强调色底 + 黑字（endfield ::selection 规范） */
+::selection {
+  background: var(--endfield-accent);
+  color: #000;
+}
+
+/* 代码块：去掉被 .post-body table td 误伤的 td 下边线（代码块也是 table/td 结构） */
+.post-body figure.highlight table td {
+  border: 0;
+}
+
+/* 表格最底部：加一道与表头一致的下粗线（上下对称） */
+.post-body table tbody tr:last-child td {
+  border-bottom: 2px solid #d8d9d5;
+}
+html.endfield-dark .post-body table tbody tr:last-child td {
+  border-bottom-color: #4a4d49;
+}
+/* 排除代码块（其 table td 一律无边框） */
+.post-body figure.highlight table tr:last-child td {
+  border: 0;
+}
+
+/* 表格最顶部：加一道与表头/底部一致的 2px 粗线（上下闭合） */
+.post-body table thead th {
+  border-top: 2px solid #d8d9d5;
+}
+html.endfield-dark .post-body table thead th {
+  border-top-color: #4a4d49;
+}
+
+/* 侧边栏：隐藏博主名（starry-zero的博客）这一行，先注释掉 */
+.site-author-name {
+  display: none;
+}
