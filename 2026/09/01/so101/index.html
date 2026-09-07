@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"starry-zero.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.29.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署这是一篇开发心路。把 reBot 机械臂上的视觉抓取迁到 SO-101，一路经历了逆运动学、视觉抓取、标定和分布式部署。下面记下当时真正卡住的地方，以及最后是怎么走出来的。 缘起大约 25 年 11 月，实验室开始讨论小车的下一步。我们实验室本身并不是做机械臂的，而是做无人系统的（无人车、无人机、无人艇等等），机械臂这">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署">
+<meta property="og:url" content="https://starry-zero.github.io/2026/09/01/so101/index.html">
+<meta property="og:site_name" content="starry-zero">
+<meta property="og:description" content="从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署这是一篇开发心路。把 reBot 机械臂上的视觉抓取迁到 SO-101，一路经历了逆运动学、视觉抓取、标定和分布式部署。下面记下当时真正卡住的地方，以及最后是怎么走出来的。 缘起大约 25 年 11 月，实验室开始讨论小车的下一步。我们实验室本身并不是做机械臂的，而是做无人系统的（无人车、无人机、无人艇等等），机械臂这">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-07T00:12:14.371Z">
+<meta property="article:author" content="starry-zero的博客">
+<meta property="article:tag" content="机械臂">
+<meta property="article:tag" content="视觉抓取">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://starry-zero.github.io/2026/09/01/so101/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://starry-zero.github.io/2026/09/01/so101/","path":"2026/09/01/so101/","title":"从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署 | starry-zero</title>
+  
+
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">starry-zero</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-layer-group fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%8E-reBot-%E5%88%B0-SO-101%EF%BC%9A%E6%9C%BA%E6%A2%B0%E8%87%82%E9%80%86%E8%BF%90%E5%8A%A8%E5%AD%A6%E3%80%81%E8%A7%86%E8%A7%89%E6%8A%93%E5%8F%96%E3%80%81%E6%A0%87%E5%AE%9A%E5%B7%A5%E7%A8%8B%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2"><span class="nav-number">1.</span> <span class="nav-text">从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E5%85%B3%EF%BC%9A%E4%BA%94%E8%87%AA%E7%94%B1%E5%BA%A6%E6%9C%BA%E6%A2%B0%E8%87%82%E7%9A%84%E9%80%86%E8%BF%90%E5%8A%A8%E5%AD%A6%EF%BC%88IK%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">第一关：五自由度机械臂的逆运动学（IK）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B4%E4%BD%93%E7%9A%84%E7%AE%A1%E7%BA%BF%EF%BC%9A%E4%BB%8E%E5%83%8F%E7%B4%A0%E5%88%B0%E5%A4%B9%E7%88%AA"><span class="nav-number">1.3.</span> <span class="nav-text">整体的管线：从像素到夹爪</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%8B%E7%9C%BC%E7%9F%A9%E9%98%B5-T-cam2gripper-%E6%A0%87%E5%AE%9A"><span class="nav-number">1.4.</span> <span class="nav-text">手眼矩阵 T_cam2gripper 标定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2"><span class="nav-number">1.5.</span> <span class="nav-text">分布式部署</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E6%9C%80%E5%90%8E"><span class="nav-number">1.6.</span> <span class="nav-text">写在最后</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">starry-zero的博客</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-name">帖子</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+<!-- 侧边栏底部设置框已移除：设置入口改为右下角悬浮齿轮（endfield-settings-fab）-->
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://starry-zero.github.io/2026/09/01/so101/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="starry-zero的博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="starry-zero">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署 | starry-zero">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-09-01 00:00:00" itemprop="dateCreated datePublished" datetime="2026-09-01T00:00:00+08:00">2026-09-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-09-07 08:12:14" itemprop="dateModified" datetime="2026-09-07T08:12:14+08:00">2026-09-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%8A%80%E6%9C%AF/%E6%9C%BA%E5%99%A8%E4%BA%BA/" itemprop="url" rel="index"><span itemprop="name">机器人</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="从-reBot-到-SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署"><a href="#从-reBot-到-SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署" class="headerlink" title="从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署"></a>从 reBot 到 SO-101：机械臂逆运动学、视觉抓取、标定工程与分布式部署</h1><p>这是一篇开发心路。把 reBot 机械臂上的视觉抓取迁到 SO-101，一路经历了逆运动学、视觉抓取、标定和分布式部署。下面记下当时真正卡住的地方，以及最后是怎么走出来的。</p>
+<h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>大约 25 年 11 月，实验室开始讨论小车的下一步。我们实验室本身并不是做机械臂的，而是做无人系统的（无人车、无人机、无人艇等等），机械臂这一块，当时还是空白。然而，”在小车上集成一台机械臂”这个想法，从被提出那天起，至少在我心里，它就是一座小小的圣杯。Rover with manipulator，一旦做成，我们可以用它实现更多的理想，它也能去满足更广泛、也更难满足的需求。</p>
+<p>到 26 年 5 月，我已经把机械臂开发的理论基础过了一遍，组装了 SO-101 机械臂，也在 GitHub 上 clone 了几个仓库。可直到 26 年 8 月，我都没有找到一套真正意义上、能用在 SO-101 上的视觉抓取方案。</p>
+<p>reBot 倒是有一套完整的抓取 demo。26 年 7 月，实验室另一个兄弟团队基于 reBot B601 开发相关功能。但对我们的小车来说，B601 太重了，供电、承重都承受不起。于是任务变成：把 reBot B601 的抓取流水线，移植到 SO-101 上。</p>
+<h2 id="第一关：五自由度机械臂的逆运动学（IK）"><a href="#第一关：五自由度机械臂的逆运动学（IK）" class="headerlink" title="第一关：五自由度机械臂的逆运动学（IK）"></a>第一关：五自由度机械臂的逆运动学（IK）</h2><blockquote>
+<p>一个反直觉的事实是：想让 SO-101 末端到达”某个位置 + 某个朝向”，大多数时候是做不到的。</p>
+</blockquote>
+<p>SO-101 便宜、开源，可它和 B601 之间隔着一道很大的鸿沟：少了一个自由度。机器人位姿里，位置占 3 个自由度（前后、左右、上下），朝向又占 3 个（绕三个轴转），一共 6 个；我们只有 5 个电机。少一维，解就很难出。</p>
+<p>权衡之下，去掉了最后一个姿态维度（roll）。真正必须对齐的，只剩两样：</p>
+<ul>
+<li>抓手末端到达目标位置；</li>
+<li>抓手的”接近方向”对准物体。</li>
+</ul>
+<p>在 helpful AI assist 的辅助下，我把 IK 改成了两段式：先只解位置，再以位置解为初值，去对齐接近轴。衡量”方向对不对”，用的是点积损失：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">approach = T_solution[:<span class="number">3</span>, :<span class="number">3</span>] @ [<span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>]   <span class="comment"># 当前抓手的接近方向</span></span><br><span class="line">axis_err = <span class="number">1.0</span> - dot(approach, target_axis) <span class="comment"># 0 表示完全对齐</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="整体的管线：从像素到夹爪"><a href="#整体的管线：从像素到夹爪" class="headerlink" title="整体的管线：从像素到夹爪"></a>整体的管线：从像素到夹爪</h2><p>整体的管线是非常经典的视觉抓取，这次开发直接复用了 B601 的那一套。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">像素 (u,v)</span><br><span class="line">  │ 深度相机 + 内参 K</span><br><span class="line">  ▼</span><br><span class="line">相机坐标系</span><br><span class="line">  │ 手眼矩阵 T_cam2gripper</span><br><span class="line">  ▼</span><br><span class="line">末端坐标系</span><br><span class="line">  │ 正运动学 FK</span><br><span class="line">  ▼</span><br><span class="line">底座坐标系</span><br><span class="line">  │ 逆运动学 IK</span><br><span class="line">  ▼</span><br><span class="line">关节角度 → 舵机</span><br></pre></td></tr></table></figure>
+
+<p>我们用”相机到物体的接近方向”和”OBB 短边的张开方向”定两根轴，再用叉积凑出第三根，组成夹爪完整的抓取姿态：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">approach = normalize(-position)          <span class="comment"># 相机 → 物体的方向</span></span><br><span class="line">open_axis = 短边在 3D 里的方向</span><br><span class="line">grip_axis = cross(open_axis, approach)   <span class="comment"># 叉积凑出右手坐标系</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>机器人学原理可参阅《机器人学导论》。视觉抓取原理可参阅 <a target="_blank" rel="noopener" href="https://blog.csdn.net/2403_87969572/article/details/155994460">这篇笔记</a>。</p>
+</blockquote>
+<h2 id="手眼矩阵-T-cam2gripper-标定"><a href="#手眼矩阵-T-cam2gripper-标定" class="headerlink" title="手眼矩阵 T_cam2gripper 标定"></a>手眼矩阵 T_cam2gripper 标定</h2><p>整套管线的运转，还有一个很大的技术挑战：SO-101 手眼矩阵的标定。我们需要测出属于自己这套机械臂系统的手眼矩阵。</p>
+<blockquote>
+<p>手眼标定（TSAI）本质是解方程：给很多组”末端位姿 + 标记在相机里的位姿”，反推”相机相对抓手”的固定变换。如果这些位姿都长得差不多，方程就是病态的。因此，标定位姿的关节多样性至关重要。</p>
+</blockquote>
+<p>第一次手工确定标定位姿，结果不及预期，机械臂抓取偏差极大。后来试过两次自动生成标定位姿，结果愈发离谱。</p>
+<p>最后一次，我们生成了上百个位姿，让 IK 按照”关节 1 左&#x2F;右、关节 5 大角度&#x2F;小角度”去配到两个 25&#x2F;25，最后再随机打乱顺序。这才完成了手眼标定。</p>
+<p>还有一些小巧思：</p>
+<ol>
+<li>机械臂URDF模型文件的”0 度”和舵机的”0 度”也需要对齐。这一点其实比较容易想到，可如果没想到，就会卡很久。</li>
+<li>我们还需要知道相机光轴在抓手坐标系里到底朝向哪个轴。后来写了一个脚本，把 ±X、±Y、±Z 六个候选方向都试了一遍。</li>
+</ol>
+<h2 id="分布式部署"><a href="#分布式部署" class="headerlink" title="分布式部署"></a>分布式部署</h2><p>我们把相关逻辑接入 ROS 并分布式部署。PC 做人机交互——看画面、按按键，其他功能放在小车 Jetson 上，二者协同运行。</p>
+<p>漫漫长夜迎来曙光。屏幕上出现机械臂视角的画面和物体检测框，按下键盘，远处的机械臂按预期完成了抓取。</p>
+<blockquote>
+<p>Tip：PC 是 x86，Jetson 是 ARM。Python 虚拟环境并不兼容。</p>
+</blockquote>
+<h2 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h2><p>这次开发不是一帆风顺的。客观条件也有不少制约。可我们还是想千法、舍万法地把它做出来了——或许这就是这个项目让我印象最深的地方。当然，过程里也有很多主动的妥协。</p>
+<p>还有一点感触。到了最后比赛，其实真的不是在炫技，而是大家——至少在相互答辩的环节——真的比较关心这个产品有没有用、能不能落地。这一点，感觉也是明年学弟学妹们继续努力的方向吧。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%BA%E6%A2%B0%E8%87%82/" rel="tag"># 机械臂</a>
+              <a href="/tags/%E8%A7%86%E8%A7%89%E6%8A%93%E5%8F%96/" rel="tag"># 视觉抓取</a>
+          </div>
+
+        
+
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    Copyright © 2026 starry-zero
+    |
+    本站文章采用
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
+    许可协议
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+<button id="endfield-settings-fab" class="endfield-settings-trigger endfield-settings-fab" type="button" aria-label="设置" title="设置">
+  <i class="fa fa-gear"></i>
+</button>
+
+<div class="endfield-settings-overlay" id="endfield-settings" aria-hidden="true">
+  <div class="endfield-settings-panel">
+    <div class="endfield-settings-side">
+      <div class="endfield-settings-side-title">设置</div>
+      <div class="endfield-settings-side-item active" data-tab="palette">配色</div>
+      <div class="endfield-settings-side-item" data-tab="background">背景</div>
+    </div>
+    <div class="endfield-settings-body">
+      <button class="endfield-settings-close" id="endfield-settings-close" type="button">×</button>
+
+      <div class="endfield-settings-pane active" data-pane="palette">
+        <div class="endfield-settings-group-title"><span></span>01 配色</div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">主题配色</div>
+            <div class="endfield-setting-hint">终端配色，用于按钮、悬停、标题与等高线</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-palette="valley">谷地黄</button><button data-palette="wuling">武陵青</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">外观</div>
+            <div class="endfield-setting-hint">浅色 / 深色</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-mode="light">浅色</button><button data-mode="dark">深色</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="endfield-settings-pane" data-pane="background">
+        <div class="endfield-settings-group-title"><span></span>02 背景</div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">等高线背景</div>
+            <div class="endfield-setting-hint">当前配色的等值线铺满界面底层</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-contour-enable="on">开启</button><button data-contour-enable="off">关闭</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">动态等高线</div>
+            <div class="endfield-setting-hint">等高线缓慢流动变形</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-contour-anim="on">开启</button><button data-contour-anim="off">关闭</button>
+          </div>
+        </div>
+        <div class="endfield-setting-row">
+          <div class="endfield-setting-text">
+            <div class="endfield-setting-label">动态帧率 FPS</div>
+            <div class="endfield-setting-hint">选择等高线动画的刷新档位</div>
+          </div>
+          <div class="endfield-setting-control">
+            <button data-fps="24">24</button><button data-fps="60">60</button><button data-fps="120">120</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/endfield-contour.js" defer></script>
+<script src="/js/endfield-palette.js" defer></script>
+<script src="/js/endfield-codeblock.js" defer></script>
+<script src="/js/endfield-settings.js" defer></script>
+
+</body>
+</html>
